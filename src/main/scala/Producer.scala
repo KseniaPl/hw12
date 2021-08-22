@@ -3,9 +3,8 @@ import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 import org.apache.commons.csv.CSVFormat
 import java.io.FileReader
-
 import play.api.libs.json._
-
+import java.io.BufferedReader
 object Producer extends App {
 
   val props = new Properties()
@@ -13,9 +12,8 @@ object Producer extends App {
 
   val producer = new KafkaProducer(props, new StringSerializer, new StringSerializer)
   try {
+    val in = new FileReader("src/main/resources/bestsellers with categories.csv")
 
-    val in = new FileReader("/home/kseniya/course/bestsellers with categories.csv")
-    import java.io.BufferedReader
     val bufferedReader = new BufferedReader(in)
     bufferedReader.readLine
     val records = CSVFormat.RFC4180.parse(bufferedReader)
