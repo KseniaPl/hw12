@@ -22,7 +22,7 @@ object Consumer extends App {
 
   asp.forEach(x => {
     val offset = consumer.committed(x).offset()
-    consumer.seek(x, offset-5)
+    consumer.seek(x, offset)
     consumer
       .poll(Duration.ofSeconds(1))
       .asScala
