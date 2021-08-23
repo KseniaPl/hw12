@@ -17,14 +17,23 @@ object Consumer extends App {
   consumer.subscribe(List("books").asJavaCollection)
   var partitions: Map[Long, List[Long]] = Map()
   var data: Map[Long, String] = Map()
-  consumer
-    .poll(Duration.ofSeconds(1))
-    .asScala
-    .foreach { r => {
-      partitions = partitions.updated(r.partition(), partitions.getOrElse(r.partition(), List.empty[Long]) :+ r.offset())
-      data += (r.offset() -> r.value())
-    }
-    }
+  consumer.poll(100)
+  val asp = consumer.assignment()
+
+  asp.forEach(x => {
+    val offset = consumer.committed(x).offset()
+    consumer.seek(x, offset-5)
+    consumer
+      .poll(Duration.ofSeconds(1))
+      .asScala
+      .foreach { r => {
+              partitions = partitions.updated(r.partition(), partitions.getOrElse(r.partition(), List.empty[Long]) :+ r.offset())
+              data += (r.offset() -> r.value())
+      }
+      }
+  })
+
+
   partitions.foreach(x => {
     val offsets = x._2.sorted(Ordering.Long.reverse).take(5)
     offsets.foreach(y => printf("partition: %d, offset: %d, data: %s\n", x._1, y, data.get(y)))
