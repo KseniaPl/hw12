@@ -6,7 +6,7 @@ import java.util.Properties
 import java.time.Duration
 
 object Consumer extends App {
-
+  val maxMsgForPartition = 5
   val props = new Properties()
   props.put("bootstrap.servers", "localhost:29092")
   props.put("group.id", "consumer1")
@@ -19,25 +19,18 @@ object Consumer extends App {
   var data: Map[Long, String] = Map()
   consumer.poll(100)
   val asp = consumer.assignment()
-
-  asp.forEach(x => {
-    val offset = consumer.committed(x).offset()
-    consumer.seek(x, offset)
-    consumer
-      .poll(Duration.ofSeconds(1))
-      .asScala
-      .foreach { r => {
-              partitions = partitions.updated(r.partition(), partitions.getOrElse(r.partition(), List.empty[Long]) :+ r.offset())
-              data += (r.offset() -> r.value())
-      }
-      }
-  })
-
-
-  partitions.foreach(x => {
-    val offsets = x._2.sorted(Ordering.Long.reverse).take(5)
-    offsets.foreach(y => printf("partition: %d, offset: %d, data: %s\n", x._1, y, data.get(y)))
-  })
+  consumer.seekToEnd(asp)
+  asp.forEach {
+    tp =>
+      consumer.seek(tp, consumer.position(tp) - maxMsgForPartition)
+      consumer
+        .poll(Duration.ofSeconds(1))
+        .asScala
+        .foreach { r => {
+          printf("partition: %d, offset: %d, data: %s\n", tp.partition(), r.offset(), r.value())
+        }
+        }
+  }
   consumer.close()
 
 
